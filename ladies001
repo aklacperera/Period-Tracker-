@@ -1,0 +1,192 @@
+import React, { useState, useEffect } from 'react';
+import { Calendar } from 'lucide-react';
+import { format, addDays, subDays } from 'date-fns';
+
+interface Cycle {
+  startDate: Date;
+  endDate: Date;
+  symptoms: string[];
+  flowLevel: string;
+  mood: string;
+}
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  password: string;
+  cycleHistory: Cycle[];
+}
+
+const CycleTracker = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [cycle, setCycle] = useState<Cycle | null>(null);
+  const [symptoms, setSymptoms] = useState('');
+  const [flowLevel, setFlowLevel] = useState('');
+  const [mood, setMood] = useState('');
+  const [periodStartDate, setPeriodStartDate] = useState<Date | null>(null);
+  const [periodEndDate, setPeriodEndDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  const handleDateChange = (date: Date) => {
+    setCurrentDate(date);
+  };
+
+  const handleSymptomsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSymptoms(e.target.value);
+  };
+
+  const handleFlowLevelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFlowLevel(e.target.value);
+  };
+
+  const handleMoodChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMood(e.target.value);
+  };
+
+  const handleLogCycle = () => {
+    if (user) {
+      const newCycle: Cycle = {
+        startDate: currentDate,
+        endDate: addDays(currentDate, 7),
+        symptoms: [symptoms],
+        flowLevel,
+        mood,
+      };
+      user.cycleHistory.push(newCycle);
+      setUser(user);
+      localStorage.setItem('user', JSON.stringify(user));
+    }
+  };
+
+  const handlePredictCycle = () => {
+    if (user) {
+      const lastCycle = user.cycleHistory[user.cycleHistory.length - 1];
+      const predictedStartDate = addDays(lastCycle.startDate, 28);
+      const predictedEndDate = addDays(predictedStartDate, 7);
+      setCycle({
+        startDate: predictedStartDate,
+        endDate: predictedEndDate,
+        symptoms: [],
+        flowLevel: '',
+        mood: '',
+      });
+    }
+  };
+
+  const handleAddPeriod = () => {
+    if (periodStartDate && periodEndDate) {
+      const newCycle: Cycle = {
+        startDate: periodStartDate,
+        endDate: periodEndDate,
+        symptoms: [],
+        flowLevel: '',
+        mood: '',
+      };
+      if (user) {
+        user.cycleHistory.push(newCycle);
+        setUser(user);
+        localStorage.setItem('user', JSON.stringify(user));
+      }
+    }
+  };
+
+  return (
+    <div className="max-w-md mx-auto p-4">
+      <h1 className="text-3xl font-bold mb-4">Cycle Tracker</h1>
+      <div className="flex justify-between mb-4">
+        <button
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          onClick={handlePredictCycle}
+        >
+          Predict Cycle
+        </button>
+        <button
+          className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+          onClick={handleLogCycle}
+        >
+          Log Cycle
+        </button>
+      </div>
+      <div className="flex flex-col mb-4">
+        <label className="text-lg font-bold mb-2">Symptoms:</label>
+        <input
+          type="text"
+          value={symptoms}
+          onChange={handleSymptomsChange}
+          className="p-2 border border-gray-400 rounded"
+        />
+      </div>
+      <div className="flex flex-col mb-4">
+        <label className="text-lg font-bold mb-2">Flow Level:</label>
+        <input
+          type="text"
+          value={flowLevel}
+          onChange={handleFlowLevelChange}
+          className="p-2 border border-gray-400 rounded"
+        />
+      </div>
+      <div className="flex flex-col mb-4">
+        <label className="text-lg font-bold mb-2">Mood:</label>
+        <input
+          type="text"
+          value={mood}
+          onChange={handleMoodChange}
+          className="p-2 border border-gray-400 rounded"
+        />
+      </div>
+      <div className="flex justify-between mb-4">
+        <Calendar
+          color="blue"
+          size={48}
+          onClick={() => handleDateChange(subDays(currentDate, 1))}
+        />
+        <p className="text-lg font-bold">
+          {format(currentDate, 'MMMM yyyy')}
+        </p>
+        <Calendar
+          color="blue"
+          size={48}
+          onClick={() => handleDateChange(addDays(currentDate, 1))}
+        />
+      </div>
+      <div className="flex flex-col mb-4">
+        <label className="text-lg font-bold mb-2">Add Period:</label>
+        <input
+          type="date"
+          value={periodStartDate ? format(periodStartDate, 'yyyy-MM-dd') : ''}
+          onChange={(e) => setPeriodStartDate(new Date(e.target.value))}
+          className="p-2 border border-gray-400 rounded"
+        />
+        <input
+          type="date"
+          value={periodEndDate ? format(periodEndDate, 'yyyy-MM-dd') : ''}
+          onChange={(e) => setPeriodEndDate(new Date(e.target.value))}
+          className="p-2 border border-gray-400 rounded"
+        />
+        <button
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          onClick={handleAddPeriod}
+        >
+          Add Period
+        </button>
+      </div>
+      {cycle && (
+        <div className="flex flex-col mb-4">
+          <p className="text-lg font-bold">Predicted Cycle:</p>
+          <p className="text-lg">
+            {format(cycle.startDate, 'MMMM dd, yyyy')} -{' '}
+            {format(cycle.endDate, 'MMMM dd, yyyy')}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
